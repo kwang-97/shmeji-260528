@@ -1,0 +1,36 @@
+{
+  "name": "desktop-shimeji",
+  "version": "1.0.0",
+  "description": "AI Desktop Shimeji - Diana desktop mascot",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "generate:placeholders": "node scripts/generate_placeholders.mjs",
+    "postinstall": "node scripts/install-electron.cjs",
+    "generate:sprites": "node scripts/generate_sprites.mjs"
+  },
+  "keywords": [
+    "electron",
+    "shimeji",
+    "desktop-mascot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "matter-js": "^0.20.0",
+    "pixi.js": "^8.8.1"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.19.8",
+    "@types/node": "^22.13.10",
+    "electron": "^35.0.0",
+    "electron-vite": "^3.0.0",
+    "sharp": "^0.34.1",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2"
+  }
+}

@@ -1,0 +1,151 @@
+import { screen, BrowserWindow, ipcMain, nativeImage, Tray, Menu, app } from "electron";
+import { join } from "path";
+import __cjs_mod__ from "node:module";
+const __filename = import.meta.filename;
+const __dirname = import.meta.dirname;
+const require2 = __cjs_mod__.createRequire(import.meta.url);
+let mainWindow = null;
+let cursorTimer = null;
+function getMainWindow() {
+  return mainWindow;
+}
+function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+  mainWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    hasShadow: false,
+    skipTaskbar: false,
+    backgroundColor: "#00000000",
+    resizable: false,
+    movable: false,
+    focusable: true,
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.mjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false
+    }
+  });
+  mainWindow.setAlwaysOnTop(true, "screen-saver");
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+  mainWindow.on("close", (event) => {
+    if (!shouldQuit()) {
+      event.preventDefault();
+      hideWindow();
+    }
+  });
+  mainWindow.on("closed", () => {
+    if (cursorTimer) {
+      clearInterval(cursorTimer);
+      cursorTimer = null;
+    }
+    mainWindow = null;
+  });
+  ipcMain.on("set-ignore-mouse", (_event, ignore, forward = true) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setIgnoreMouseEvents(ignore, { forward });
+    }
+  });
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+  } else {
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+  mainWindow.once("ready-to-show", () => {
+    mainWindow?.show();
+    startCursorPolling();
+  });
+  return mainWindow;
+}
+function startCursorPolling() {
+  if (cursorTimer) return;
+  cursorTimer = setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const point = screen.getCursorScreenPoint();
+    const bounds = mainWindow.getBounds();
+    mainWindow.webContents.send("cursor-position", {
+      x: point.x - bounds.x,
+      y: point.y - bounds.y
+    });
+  }, 50);
+}
+function showWindow() {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
+function hideWindow() {
+  mainWindow?.hide();
+}
+let tray = null;
+function createTray(handlers) {
+  const iconPath = join(__dirname, "../../resources/tray-icon.png");
+  let icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) {
+    icon = nativeImage.createEmpty();
+  }
+  tray = new Tray(icon.isEmpty() ? nativeImage.createFromDataURL(createFallbackIcon()) : icon);
+  tray.setToolTip("Diana Shimeji");
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Show", click: handlers.onShow },
+    { label: "Hide", click: handlers.onHide },
+    { type: "separator" },
+    { label: "Quit", click: handlers.onQuit }
+  ]);
+  tray.setContextMenu(contextMenu);
+  tray.on("double-click", handlers.onShow);
+  return tray;
+}
+function destroyTray() {
+  tray?.destroy();
+  tray = null;
+}
+function createFallbackIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="#2266dd"/><circle cx="8" cy="6" r="3" fill="#f5e6a8"/><rect x="4" y="9" width="8" height="5" rx="1" fill="#2266dd"/></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+let isQuitting = false;
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = getMainWindow();
+    if (win) {
+      showWindow();
+    }
+  });
+  app.whenReady().then(() => {
+    app.setLoginItemSettings({ openAtLogin: true });
+    createWindow();
+    createTray({
+      onShow: showWindow,
+      onHide: hideWindow,
+      onQuit: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    });
+  });
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") ;
+  });
+  app.on("before-quit", () => {
+    isQuitting = true;
+  });
+  app.on("will-quit", () => {
+    destroyTray();
+  });
+}
+function shouldQuit() {
+  return isQuitting;
+}

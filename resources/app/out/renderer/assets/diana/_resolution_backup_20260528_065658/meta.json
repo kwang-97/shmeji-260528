@@ -1,0 +1,40 @@
+{
+  "frameWidth": 177,
+  "frameHeight": 230,
+  "anchor": {
+    "x": 0.5,
+    "y": 0.12
+  },
+  "animations": {
+    "idle": {
+      "file": "idle.png",
+      "frames": 5,
+      "fps": 8
+    },
+    "walk": {
+      "file": "walk.png",
+      "frames": 7,
+      "fps": 10
+    },
+    "run": {
+      "file": "run.png",
+      "frames": 10,
+      "fps": 14
+    },
+    "drag": {
+      "file": "drag.png",
+      "frames": 4,
+      "fps": 8
+    },
+    "fall": {
+      "file": "fall.png",
+      "frames": 5,
+      "fps": 12
+    },
+    "land": {
+      "file": "land.png",
+      "frames": 5,
+      "fps": 10
+    }
+  }
+}
